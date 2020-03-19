@@ -79,7 +79,19 @@ def deviceHandler(que):
 if __name__ == "__main__":
     startingTime = time.time()
     devices = []
-
+    #Just add some device to test code, as an advice, start with show commands,
+    """
+        Most practically, you can read a text file including ip addresses of devices and add 'devices'list,
+    but,for now, I am just add devices more manually,
+    
+        you can use below code to add devices from a text file named as "myDevices.txt"(for here, it is located in same folder with your code),
+        
+        ips = [line.rstrip('\n') for line in open("myDevices.txt")]
+        
+        for ip in ips:
+            devices.append(ip, "Username", "Password")
+        
+    """
     tempDevice = Device("1.1.1.1", "USERNAME1", "PASSWORD1")
     commands = [deviceCommand("show int desc") , deviceCommand("show ver"), deviceCommand("show int status")]
     tempDevice.commandsToGetIn = commands
@@ -93,22 +105,27 @@ if __name__ == "__main__":
     del tempDevice
 
 
-    tempDevice = Device("3.3.3.3", "USERNAME3", "PASSWORD4")
+    tempDevice = Device("3.3.3.3", "USERNAME3", "PASSWORD3")
     commands = [deviceCommand("show int desc") , deviceCommand("show ver"), deviceCommand("show int status")]
     tempDevice.commandsToGetIn = commands
     devices.append(tempDevice)
     del tempDevice
 
-
-    tempDevice = Device("4.4.4.4", "USERNAME4", "PASSWORD4")
-    commands = [deviceCommand("show int desc") , deviceCommand("show ver"), deviceCommand("show int status")]
+    #Assume that you have a Huawei device with ip address of 4.4.4.4
+    tempDevice = Device("4.4.4.4", "USERNAME4", "PASSWORD4", infiniteOutputKeyword = "screen-length 0 temporary")
+    commands = [deviceCommand("dis int desc") , deviceCommand("dis ver")]
     tempDevice.commandsToGetIn = commands
     devices.append(tempDevice)
     del tempDevice
 
-
+    """
+        You can adjust this number, but this is a little bit tricky for each system, 
+        you have to search and calculate optimum number of threads, because 
+        every system has a limited number of threading source and threads are not used only by you
+    """
+    numberOfThreads = 10
     print "Threads loading..."
-    for i in range(10):
+    for i in range(numberOfThreads):
         t = Thread(target = deviceHandler, args = (orderOfDevices,))
         t.daemon = True
         t.start()
@@ -119,10 +136,10 @@ if __name__ == "__main__":
 
     #Waiting for an empty que
     orderOfDevices.join()
-
+    
     print "Process takes %s seconds to complete" % (time.time() - startingTime)
-    print "Result*************************************************"
-                
+    print "Results*************************************************"
+    #Printing outout of each command in each device with proper order  
     for device in devices:
         if device.connection:
             print "Outputs of commands for device with ip of " + device.ip
