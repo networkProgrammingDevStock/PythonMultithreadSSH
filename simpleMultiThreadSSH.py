@@ -1,16 +1,12 @@
-from time import sleep
 from threading import Thread
-
 import os
 import collections
-import thread
-from Queue import Queue
-
+import queue
 import paramiko
 from getpass import getpass
 import time
 
-print "Modules are imported successfully"
+print("Modules are imported successfully")
 
 
 
@@ -37,36 +33,35 @@ class Device:
             try:
                 remote_conn_pre=paramiko.SSHClient()
                 remote_conn_pre.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                remote_conn_pre.connect(self.ip, port=22, username=self.username, password=self.password,look_for_keys=False, allow_agent=False)
+                remote_conn_pre.connect(self.ip, port=22, username=self.username, password=self.password, look_for_keys=False, allow_agent=False)
                 remote_conn = remote_conn_pre.invoke_shell()
                 output = remote_conn.recv(65535)
                 self.connection = 1
-                        
+                #print(str(output) + " " +self.ip)
                 self.processSteps = 1
                 print(self.ip + " step 1")
-                remote_conn.send("term len 0" + "\n")
+                remote_conn.send((self.infiniteOutputCommand + "\n").encode('ascii'))
                 time.sleep(5)
-                self.hostname = remote_conn.recv(65535).rsplit('\n')[1].split('#')[0]
-
                 self.processSteps = 2
                 print(self.ip +" step 2")
                 for work in self.commandsToGetIn:
-                    remote_conn.send(work.command + "\n")
+                    remote_conn.send((work.command + "\n").encode('ascii'))
                     time.sleep(work.waitingTimeToGetOutput)
-                    work.commandOutput = remote_conn.recv(65535)
+                    work.commandOutput = str(remote_conn.recv(65535))
 
-            except Exception, e:
+            except Exception as e:
                 if not self.connection:
-                    print self.ip + " not reachable"
+                    print(self.ip + " not reachable")
                 if not self.processSteps:
-                    print self.ip + " process failed at step of " + str(self.processSteps)
+                    print(self.ip + " process failed at step of " + str(self.processSteps))
+                    print(str(e))
             finally:
                 if remote_conn_pre:
                     remote_conn_pre.close()       
-                    print self.ip + "done"
+                    print (self.ip + "done")
 
 
-orderOfDevices = Queue()
+orderOfDevices = queue.Queue()
 
 
 def deviceHandler(que):
@@ -124,12 +119,12 @@ if __name__ == "__main__":
         every system has a limited number of threading source and threads are not used only by you
     """
     numberOfThreads = 10
-    print "Threads loading..."
+    print("Threads loading...")
     for i in range(numberOfThreads):
         t = Thread(target = deviceHandler, args = (orderOfDevices,))
         t.daemon = True
         t.start()
-    print "Threads online..."
+    print("Threads online...")
     #Adding devices a que
     for node in devices:
         orderOfDevices.put(node)
@@ -137,14 +132,14 @@ if __name__ == "__main__":
     #Waiting for an empty que
     orderOfDevices.join()
     
-    print "Process takes %s seconds to complete" % (time.time() - startingTime)
-    print "Results*************************************************"
+    print("Process takes %s seconds to complete" % (time.time() - startingTime))
+    print("Results*************************************************")
     #Printing outout of each command in each device with proper order  
     for device in devices:
         if device.connection:
-            print "Outputs of commands for device with ip of " + device.ip
+            print ("Outputs of commands for device with ip of " + device.ip)
             for command in device.commandsToGetIn:
-                print "Command: \n" + command.command
-                print "Output: \n" + command.commandOutput
+                print("Command: \n" + command.command)
+                print("Output: \n" + command.commandOutput)
                 
-    print "Process can be reported as finished, but please check output of 'ps -lf' on linux, and task manager on windows to check any unwanted thread lasting to work."
+    print("Process can be reported as finished, but please check output of 'ps -lf' on linux, and task manager on windows to check any unwanted thread lasting to work.")
